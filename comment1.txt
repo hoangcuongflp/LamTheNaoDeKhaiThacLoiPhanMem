@@ -1,0 +1,151 @@
+Bổ sung Slide kèm theo cuốn sách "Nghệ thuật tận dụng lỗi phần mềm" Của anh Nguyễn Thành Nam 
+Code:
+http://www.mediafire.com/?54z7s6i1tcmsy9g
+
+Các bài tập liên quan đến hợp ngữ: 
+Tính EDX = EAX* EBX
+Lấy ra giá trị của phần tử thứ hai trên ngăn xếp vào EDX (vẫn giữ giá trị của đỉnh ngăn xếp)
+Gán giá trị của EIP vào EAX
+Gán giá trị của EAX vào EIP
+
+Bài tập tìm lỗi và sửa lỗi chương trình. 
+Bài tập 1: 
+Code:
+void vuln(char *src)
+{
+   char buf[8];
+   int i;
+   for (i = 0; i <= sizeof(buf); i++)
+   {
+       buf[i] = src[i];
+   }
+}
+
+void main(int argc, char **argv)
+{
+   if (argc < 2)
+   {
+       return;
+   }
+   vuln(argv[1]);
+}
+
+Bài tập 2 
+Code:
+int main(int argc, char **argv)
+{
+   int i, j;
+   if (argc < 3)
+   {
+       return 0;
+   }
+   i = atoi(argv[1]);
+   j = atoi(argv[2]);
+   if (j == 0)
+   {
+       j = 1;
+   }
+   return i / j;
+}
+
+
+Nêu cách khai thác lỗi đoạn mã sau: 
+Code:
+<?php
+public function ProcessLogin() {
+     $loginName='';
+     $loginPass='';
+     if((!isset($_POST['username']) || !isset($_POST['password'])) && !isset($_COOKIE['RememberToken'])) {
+         $GLOBALS['ISC_CLASS_ADMIN_AUTH']->DoLogin(true);
+         return;
+     }
+    
+     // Is this an automatic login from "Remember Me" being ticked?
+     if(isset($_POST['username'])) {
+         $loginName = @$_POST['username'];
+         $loginPass = @$_POST['password'];
+         $query = sprintf("select pk_userid, username, userpass, token, userimportpass from [|PREFIX|]users where username='%s' and userstatus='1'", $GLOBALS['ISC_CLASS_DB']->Quote($loginName));
+     }
+     else if(isset($_COOKIE['RememberToken']) && trim($_COOKIE['RememberToken']) != '') {
+         $md5 = $_COOKIE['RememberToken'];
+         $query = sprintf("select pk_userid, username, userpass, token, userimportpass from [|PREFIX|]users where md5(concat(username, token))='%s'", $GLOBALS['ISC_CLASS_DB']->Quote($md5));
+     } else {
+         // Otherwise, we have a bad username/password
+         $GLOBALS['ISC_CLASS_LOG']->LogAdminAction("invalid", $loginName);
+         $GLOBALS['ISC_CLASS_ADMIN_AUTH']->DoLogin(true);
+         die();
+     }
+    
+     if(isset($_POST['remember']) || isset($_COOKIE['RememberToken'])) {
+         $remember = true;
+     }
+     else {
+         $remember = false;
+     }
+    
+     ob_start();
+    
+     // Try and find a user with the same credentials
+     $userResult = $GLOBALS["ISC_CLASS_DB"]->Query($query);
+    
+     if($userRow = $GLOBALS["ISC_CLASS_DB"]->Fetch($userResult)) {
+         if($remember) {
+             ISC_SetCookie("RememberToken", md5($userRow['username'] . $userRow['token']), time() + 3600*24*365, true);
+         }
+         else {
+             ISC_SetCookie("RememberToken", "", time() - 3600*24*365, true);
+         }
+        
+         // Was this an improted password?
+         if($userRow['userimportpass'] != '' && $userRow['userpass'] != md5($loginPass)) {
+             if(ValidateImportPassword($loginPass, $userRow['userimportpass'])) {
+                 // Valid login from an import password. We now store the Interspire Shopping Cart version of the password
+                 $updatedUser = array(
+                         "userpass" => md5($loginPass),
+                         "userimportpass" => ""
+                 );
+                 $GLOBALS['ISC_CLASS_DB']->UpdateQuery("users", $updatedUser, "pk_userid='".$GLOBALS['ISC_CLASS_DB']->Quote($userRow['pk_userid'])."'");
+             }
+             else {
+                 unset($userRow['pk_userid']);
+             }
+         }
+         else {
+            
+             // Is this a "Remember Me" auto login or a form login?
+             if(isset($_POST['username'])) {
+                 if($userRow['userpass'] != md5($loginPass)) {
+                     unset($userRow['pk_userid']);
+                 }
+             }
+             else {
+                 // If they get here then "Remember Me" was set and valid so we don't have to do anything
+             }
+         }
+        
+         if(isset($userRow['pk_userid'])) {
+             // Set the auth session variable to true
+             $_COOKIE['STORESUITE_CP_TOKEN'] = $userRow['token'];
+             ISC_SetCookie("STORESUITE_CP_TOKEN", $userRow['token'], 0, true);
+            
+             // Log the successful login to the administrators log
+             $GLOBALS['ISC_CLASS_LOG']->LogAdminAction("valid");
+            
+             // Everything was OK and the user has been logged in successfully
+             ?>
+<script type="text/javascript">
+     document.location.href='?ToDo=';
+</script>
+             <?php
+             die();
+         }
+     }
+    
+     // Otherwise, we have a bad username/password
+     $GLOBALS['ISC_CLASS_LOG']->LogAdminAction("invalid", $loginName);
+     $GLOBALS['ISC_CLASS_ADMIN_AUTH']->DoLogin(true);
+     die();
+}
+
+
+Ngoài ra còn có các bài tập khác của bạn choc_ tại topic http://www.hvaonline.net/hvaonline/posts/list/27801.hva 
